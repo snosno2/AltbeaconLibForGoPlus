@@ -1,0 +1,244 @@
+ext {
+    SONATYPE_URL = ""
+    IS_DEV_BUILD = false
+    IS_RELEASE_BUILD = false
+    GROUP = "org.altbeacon"
+}
+
+/*
+ * Gets the version name from the latest Git tag
+ */
+def getVersionName = { ->
+    def stdout = new ByteArrayOutputStream()
+    try {
+        exec {
+            commandLine 'git', 'describe', '--tags'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
+    }
+    catch (e) {
+        println("Can't get version from git: "+e);
+        return "adhoc"
+    }
+}
+
+version = getVersionName()
+group = GROUP
+
+if (hasProperty("release")) {
+    IS_RELEASE_BUILD = true
+    SONATYPE_URL = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+} else if (hasProperty("snapshot")) {
+    version += "-SNAPSHOT"
+    SONATYPE_URL = "https://oss.sonatype.org/content/repositories/snapshots/"
+} else {
+    IS_DEV_BUILD = true
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.12.+'
+        classpath 'com.jakewharton.sdkmanager:gradle-plugin:0.10.+'
+        classpath 'org.robolectric:robolectric-gradle-plugin:0.11.+'
+    }
+}
+
+apply plugin: 'android-sdk-manager'
+apply plugin: "android-library"
+apply plugin: 'robolectric'
+
+allprojects {
+    repositories {
+        mavenCentral()
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots'
+        }
+    }
+}
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion '19.1.0'
+
+    compileOptions {
+        encoding "UTF-8"
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    defaultConfig {
+        minSdkVersion 1
+        targetSdkVersion 19
+        versionName = version
+        testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
+    }
+
+    buildTypes {
+        release {
+            runProguard false
+        }
+    }
+
+    sourceSets {
+        androidTest {
+            setRoot('src/test')
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    packagingOptions {
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+    }
+
+}
+
+robolectric {
+    include '**/*Test.class'
+}
+
+dependencies {
+    androidTestCompile 'org.hamcrest:hamcrest-integration:1.3'
+    androidTestCompile 'org.hamcrest:hamcrest-core:1.3'
+    androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
+
+    androidTestCompile('junit:junit:4.11') {
+        exclude module: 'hamcrest-core'
+    }
+    androidTestCompile('org.robolectric:robolectric:2.3') {
+        exclude module: 'classworlds'
+        exclude module: 'commons-logging'
+        exclude module: 'httpclient'
+        exclude module: 'maven-artifact'
+        exclude module: 'maven-artifact-manager'
+        exclude module: 'maven-error-diagnostics'
+        exclude module: 'maven-model'
+        exclude module: 'maven-project'
+        exclude module: 'maven-settings'
+        exclude module: 'plexus-container-default'
+        exclude module: 'plexus-interpolation'
+        exclude module: 'plexus-utils'
+        exclude module: 'wagon-file'
+        exclude module: 'wagon-http-lightweight'
+        exclude module: 'wagon-provider-api'
+    }
+
+    androidTestCompile 'com.squareup:fest-android:1.0.+'
+}
+
+apply plugin: 'idea'
+
+idea {
+    module {
+        testOutputDir = file('build/test-classes/debug')
+    }
+}
+
+apply plugin: "maven"
+apply plugin: "signing"
+
+afterEvaluate { project ->
+    uploadArchives {
+        repositories {
+            if (IS_DEV_BUILD) {
+                mavenLocal()
+            } else {
+                mavenDeployer {
+                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                    repository(url: SONATYPE_URL) {
+                        authentication(userName: sonatypeUsername, password: sonatypePassword)
+                    }
+
+                    println GROUP
+
+
+                    pom.project {
+                        name 'Android Beacon Library'
+                        packaging 'aar'
+                        description 'Beacon library for Android applications'
+                        artifactId = 'android-beacon-library'
+                        groupId GROUP
+                        version version
+                        url 'https://github.com/RadiusNetworks/android-beacon-library'
+
+                        scm {
+                            url 'scm:git@github.com:RadiusNetworks/android-beacon-library.git'
+                            connection 'scm:git@github.com:RadiusNetworks/android-beacon-library.git'
+                            developerConnection 'scm:git@github.com:RadiusNetworks/android-beacon-library.git'
+                        }
+
+                        licenses {
+                            license {
+                                name 'The Apache Software License, Version 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                                distribution 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id 'davidgyoung'
+                                name 'David Young'
+                                email 'david@radiusnetworks.com'
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    signing {
+        required { IS_RELEASE_BUILD && gradle.taskGraph.hasTask("uploadArchives") }
+        sign configurations.archives
+    }
+
+    task androidJavadocs(type: Javadoc) {
+        source = android.sourceSets.main.java
+    }
+
+    task androidJavadocsJar(type: Jar) {
+        classifier = 'javadoc'
+        from androidJavadocs.destinationDir
+    }
+
+    task androidSourcesJar(type: Jar) {
+        classifier = 'sources'
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    artifacts {
+        archives androidSourcesJar
+        archives androidJavadocsJar
+    }
+}
+
+/** Bundling tasks for eclipse */
+task bundleEclipse << {
+    exec {
+        executable 'scripts/bundle-eclipse'
+    }
+}
+
+task distribution(dependsOn: ["bundleEclipse", "build", "clean"]) << {
+    println "Building with version=$version"
+}
+
+task release(dependsOn: 'distribution') << {
+    println('Doing release build')
+}
+
+build.mustRunAfter clean
+bundleEclipse.mustRunAfter build
