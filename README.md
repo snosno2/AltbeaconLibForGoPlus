@@ -1,18 +1,12 @@
-Android Beacon Library
-=======================
+Android Beacon Library for GoPlus
+=================================
 
 An Android library providing APIs to interact with beacons  
 
-## Changes from the 0.x library version
+## AltBeacon Library
 
-This library has changed significantly from the 0.x library version and is now designed to work with
-open AltBeacons which fully support Android without any intellectual property restrictions.  For
-more information on how to migrate projects using the 0.x APIs to the 2.x APIs, see
-[API migration.](api-migrate.md)
+This library is designed using AltBeacon Libray which fully support Android without any intellectual property restrictions.
 
-**IMPORTANT:  By default, this library will only detect beacons meeting the new AltBeacon specification.**
-
-If you want this library to work with proprietary or custom beacons, see the [BeaconParser](http://altbeacon.github.io/android-beacon-library/javadoc/org/altbeacon/beacon/BeaconParser.html) class.
 
 ## What does this library do?
 
@@ -24,18 +18,12 @@ at a frequency of approximately 1Hz.
 
 The [project website](http://altbeacon.github.io/android-beacon-library/) has [full documentation](http://altbeacon.github.io/android-beacon-library/documentation.html) including [Javadocs.](http://altbeacon.github.io/android-beacon-library/javadoc/)
 
-## Binary Releases
-
-You may [download binary releases here.](http://altbeacon.github.io/android-beacon-library/download.html) 
-
 ## How to build this Library
 
 IMPORTANT:  This project now uses an AndroidStudio/gradle build system and the source code may no longer be imported into Eclipse as a library project.
 Eclipse users may download the latest release binary as a tar.gz file, which may then be imported as an Eclipse Library Project.  See the quick start on the project website for more information.
 
 ## Build Instructions
-
-Known working with Android Studio 0.8.6 and Gradle 1.12
 
 Key Gradle build targets:
 
@@ -58,7 +46,5 @@ Key Gradle build targets:
     limitations under the License.
 
 This software is available under the Apache License 2.0, allowing you to use the library in your applications.
-
-If you want to help with the open source project, contact david@radiusnetworks.com
 
 
