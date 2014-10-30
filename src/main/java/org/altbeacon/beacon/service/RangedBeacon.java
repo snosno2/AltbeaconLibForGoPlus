@@ -13,7 +13,7 @@ import org.altbeacon.beacon.BeaconManager;
 
 public class RangedBeacon {
 	private static String TAG = "RangedBeacon";
-	public static long DEFAULT_SAMPLE_EXPIRATION_MILLISECONDS = 20000; /* 20 seconds */
+	public static long DEFAULT_SAMPLE_EXPIRATION_MILLISECONDS = 10000; /* 10 seconds */
 	private static long sampleExpirationMilliseconds = DEFAULT_SAMPLE_EXPIRATION_MILLISECONDS;
     private boolean mTracked = true;
     Beacon mBeacon;
